@@ -37,7 +37,7 @@ This script provides a **plug-and-play setup** of Cloud9 IDE in a Docker contain
 
 ### 1. Clone the repository
 
-    git clone https://github.com/YOUR_USERNAME/cloud9.git && cd cloud9
+    git clone https://github.com/yongkico/cloud9.git && cd cloud9
 
 ### 2. Make the script executable
 
