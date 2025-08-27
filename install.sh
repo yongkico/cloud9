@@ -86,20 +86,50 @@ else
   exit 1
 fi
 
-# Step 5: Configure Cloud9
+# Step 5: Configure Cloud9 (PHP 8.2)
 print_message "$YELLOW" "🛠️ Step 5: Configuring Cloud9 container (wait 60s)..."
 sleep 60
 
-sudo docker exec Stucklabs-Cloud9 /bin/bash -c "
-  apt update -y && \
-  apt upgrade -y && \
-  apt install wget -y && \
-  apt install php-cli -y && \
-  apt install php-curl -y && \
-  cd /c9bins/.c9/ && \
-  rm -rf user.settings && \
-  wget https://raw.githubusercontent.com/yongkico/cloud9/refs/heads/main/user.settings
-"
+sudo docker exec Stucklabs-Cloud9 /bin/bash -c '
+set -e
+apt update -y && apt upgrade -y
+apt install -y wget ca-certificates lsb-release gnupg
+
+# Detect OS inside container
+if [ -f /etc/os-release ]; then
+  . /etc/os-release
+  OS_ID=${ID:-ubuntu}
+  CODENAME=${VERSION_CODENAME:-jammy}
+else
+  OS_ID=ubuntu
+  CODENAME=jammy
+fi
+
+if [ "$OS_ID" = "ubuntu" ]; then
+  apt install -y software-properties-common
+  add-apt-repository -y ppa:ondrej/php
+  apt update -y
+  apt install -y php8.2-cli php8.2-curl php8.2-zip php8.2-mbstring php8.2-xml
+elif [ "$OS_ID" = "debian" ]; then
+  echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
+  wget -O /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+  apt update -y
+  apt install -y php8.2-cli php8.2-curl php8.2-zip php8.2-mbstring php8.2-xml
+elif command -v apk >/dev/null 2>&1; then
+  apk update
+  apk add php82 php82-cli php82-curl php82-zip php82-mbstring php82-xml
+  ln -sf /usr/bin/php82 /usr/bin/php || true
+else
+  echo "Unsupported base OS in container."
+  exit 1
+fi
+
+cd /c9bins/.c9/ || { mkdir -p /c9bins/.c9 && cd /c9bins/.c9/; }
+rm -f user.settings
+wget -q https://raw.githubusercontent.com/yongkico/cloud9/refs/heads/main/user.settings
+
+php -v
+'
 if [ $? -eq 0 ]; then
   print_message "$GREEN" "✅ Configuration complete."
 else
